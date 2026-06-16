@@ -142,6 +142,59 @@ def get_client():
 # Insert new products; skip any URL that already exists.
 # Returns a dict of url → product_id for the price insert step.
 # -----------------------------------------------------------
+def upsert_products(client, items: list) -> dict:
+    seen_urls = set()
+    product_rows = []
+
+    for item in items:
+        url = item.get("url", "")
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            product_rows.append({
+                "name":     item["name"],
+                "url":      url,
+                "category": item["category"],
+                "keyword":  item["keyword"],
+                "source":   item.get("source", "unknown"),
+            })
+
+    if not product_rows:
+        return {}
+
+    # Upsert in chunks of 100 to avoid request size limits
+    chunk_size = 100
+    for i in range(0, len(product_rows), chunk_size):
+        chunk = product_rows[i : i + chunk_size]
+        client.table("products").upsert(
+            chunk,
+            on_conflict="url",
+            ignore_duplicates=True
+        ).execute()
+
+    # Fetch IDs in chunks of 100 — fixes "URL query too long" error
+    url_to_id = {}
+    urls = [r["url"] for r in product_rows]
+
+    for i in range(0, len(urls), chunk_size):
+        chunk_urls = urls[i : i + chunk_size]
+        response = (
+            client.table("products")
+            .select("id, url")
+            .in_("url", chunk_urls)
+            .execute()
+        )
+        for row in response.data:
+            url_to_id[row["url"]] = row["id"]
+
+    log.info("  Mapped %d product URLs to IDs", len(url_to_id))
+    return url_to_id
+
+
+# -----------------------------------------------------------
+# INSERT PRICES
+# Every scrape run inserts fresh rows — this IS the time series.
+# Batched in chunks of 500 to stay within Supabase limits.
+# -----------------------------------------------------------
 def insert_prices(client, items: list, url_to_id: dict):
     price_rows = []
 
