@@ -143,11 +143,6 @@ def get_client():
 # Returns a dict of url → product_id for the price insert step.
 # -----------------------------------------------------------
 def upsert_products(client, items: list) -> dict:
-    """
-    Insert new unique products into the products table.
-    Skips duplicates based on the UNIQUE url constraint.
-    Returns {url: product_id} mapping for all items.
-    """
     seen_urls = set()
     product_rows = []
 
@@ -166,22 +161,33 @@ def upsert_products(client, items: list) -> dict:
     if not product_rows:
         return {}
 
-    # on_conflict="url" + ignore_duplicates=True → safe upsert
-    client.table("products").upsert(
-        product_rows,
-        on_conflict="url",
-        ignore_duplicates=True
-    ).execute()
+    # Upsert in chunks of 100 to avoid request size limits
+    chunk_size = 100
+    for i in range(0, len(product_rows), chunk_size):
+        chunk = product_rows[i : i + chunk_size]
+        client.table("products").upsert(
+            chunk,
+            on_conflict="url",
+            ignore_duplicates=True
+        ).execute()
 
-    # Fetch IDs for all URLs we just processed
-    urls     = [r["url"] for r in product_rows]
-    response = (
-        client.table("products")
-        .select("id, url")
-        .in_("url", urls)
-        .execute()
-    )
-    return {row["url"]: row["id"] for row in response.data}
+    # Fetch IDs in chunks of 100 — fixes "URL query too long" error
+    url_to_id = {}
+    urls = [r["url"] for r in product_rows]
+
+    for i in range(0, len(urls), chunk_size):
+        chunk_urls = urls[i : i + chunk_size]
+        response = (
+            client.table("products")
+            .select("id, url")
+            .in_("url", chunk_urls)
+            .execute()
+        )
+        for row in response.data:
+            url_to_id[row["url"]] = row["id"]
+
+    log.info("  Mapped %d product URLs to IDs", len(url_to_id))
+    return url_to_id
 
 
 # -----------------------------------------------------------
