@@ -52,6 +52,9 @@ EXCLUSION_KEYWORDS = {
         "purge",
         "removal",
         "serum",
+        "mct",
+        "oil press machine",
+        "oil extract machine",
     ],
     "tea": [
         "tea bag",
@@ -79,6 +82,16 @@ EXCLUSION_KEYWORDS = {
         "keychain",
         "plush",
         "hoodie",
+        "pen",
+        "pencil",
+        "paperback",
+        "poster",
+        "notebook",
+        "stationery",
+        "gift set",
+        "doremon",
+        "tokyo",
+        "bottle"
     ],
     "dairy": [
         "milk powder",
@@ -149,6 +162,8 @@ EXCLUSION_KEYWORDS = {
         "cat food",
         "dog",
         "pet",
+        "ors",
+        "calf"
     ],
     "ghee": [
         "body butter",
@@ -232,6 +247,11 @@ EXCLUSION_KEYWORDS = {
         "self-rising",
         "self raising",
         "self-raising",
+        "daal",
+        "besan",
+        "chana",
+        "urad",
+        "maash"
     ],
     "rice": [
         "rice flour",
@@ -241,6 +261,9 @@ EXCLUSION_KEYWORDS = {
         "risotto",
         "arborio",
         "paella",
+        "poha",
+        "murmura",
+        "puffed rice"
     ],
     "pulses": [
         "flour",
