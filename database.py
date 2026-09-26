@@ -92,7 +92,7 @@ create table if not exists product_prices (
     run_id         text not null,
 
     -- version info
-    pipeline_version text, 
+    pipeline_version text
 );
 
 -- 3. Scrape execution statistics
@@ -112,6 +112,11 @@ create table if not exists scrape_runs (
     outliers          integer default 0,
     filtered_products integer default 0,
     parsing_failures  integer default 0,
+
+    -- actual DB-confirmed insert count, patched in after insert_prices()
+    -- runs (see update_inserted_count()) — may differ from `parsed` due
+    -- to dedup, missing product_id mapping, or failed insert chunks
+    inserted          integer default 0,
 
     scraped_at        timestamp default now()
 );
@@ -267,8 +272,11 @@ def upsert_products(client, items: list) -> dict:
 # INSERT PRICES
 # Every scrape run inserts fresh rows — this IS the time series.
 # Batched in chunks of 500 to stay within Supabase limits.
+# Returns {run_id: inserted_count}, tallied per run_id since `items` may
+# combine multiple scrapers' output in one call — used to patch the real
+# `inserted` count back into each scraper's scrape_runs row afterward.
 # -----------------------------------------------------------
-def insert_prices(client, items: list, url_to_id: dict):
+def insert_prices(client, items: list, url_to_id: dict) -> dict:
     price_rows = []
     skipped_no_product_id = 0
 
@@ -313,10 +321,11 @@ def insert_prices(client, items: list, url_to_id: dict):
 
     if not price_rows:
         log.warning("No price rows to insert.")
-        return
+        return {}
 
     chunk_size = 500
-    inserted = 0
+    inserted_by_run_id = {}
+    total_inserted = 0
     insert_failures = 0
     for i in range(0, len(price_rows), chunk_size):
         chunk = price_rows[i : i + chunk_size]
@@ -332,14 +341,19 @@ def insert_prices(client, items: list, url_to_id: dict):
             # rather than losing every row after the first bad chunk.
             continue
 
-        inserted += len(chunk)
+        for row in chunk:
+            rid = row["run_id"]
+            inserted_by_run_id[rid] = inserted_by_run_id.get(rid, 0) + 1
+        total_inserted += len(chunk)
         log.info("  Inserted %d price rows", len(chunk))
 
     if insert_failures:
         log.warning(
             "  %d of %d price rows failed to insert across %d failed chunk(s)",
-            len(price_rows) - inserted, len(price_rows), insert_failures
+            len(price_rows) - total_inserted, len(price_rows), insert_failures
         )
+
+    return inserted_by_run_id
 
 
 def save_scrape_run(client, stats: dict, scraper_name: str, run_id: str):
@@ -386,6 +400,20 @@ def save_rejections(client, rejected_items: list):
     )
 
 
+def update_inserted_count(client, run_id: str, scraper: str, inserted: int):
+    """
+    Patch the real DB-confirmed `inserted` count into an existing
+    scrape_runs row, once insert_prices() has finished. Called after the
+    row's initial write so a crash during upsert/insert still leaves the
+    rest of the diagnostic trail intact.
+    """
+    client.table("scrape_runs").update(
+        {"inserted": inserted}
+    ).eq("run_id", run_id).eq("scraper", scraper).execute()
+
+    log.info("  Patched inserted=%d for %s run %s", inserted, scraper, run_id)
+
+
 # -----------------------------------------------------------
 # MAIN SAVE FUNCTION
 # Called by main.py — handles the full save flow in one call.
@@ -423,7 +451,17 @@ def save_all(items: list, results: list):
 
     # Save price history
     log.info("Inserting price observations...")
-    insert_prices(client, items, url_to_id)
+    inserted_by_run_id = insert_prices(client, items, url_to_id)
+
+    # Patch the real inserted count into each scraper's scrape_runs row,
+    # now that we know what actually landed in product_prices.
+    for result in results:
+        update_inserted_count(
+            client,
+            result["run_id"],
+            result["scraper"],
+            inserted_by_run_id.get(result["run_id"], 0),
+        )
 
     log.info("Save complete → %d items", len(items))
 
