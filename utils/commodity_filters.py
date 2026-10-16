@@ -8,11 +8,20 @@ to improve dataset quality before analysis.
 import re
 
 # Regex-based exclusions, for patterns plain substring matching can't express
-# safely (e.g. "T/B" — the tea-bag abbreviation — where a bare substring
-# match on "t/b" risks false positives without word boundaries).
+# safely (word boundaries, lookaheads).
 REGEX_EXCLUSION_PATTERNS = {
     "tea": [
         re.compile(r"\bT\s*/\s*B\b", re.IGNORECASE),  # e.g. "TAPAL DANEDAR ROUND TEA T/B 200 GM"
+    ],
+    "dairy": [
+        # Exclude cream products / skincare, but keep "Full Cream Milk"
+        # (cream followed by up to 2 words and then "milk").
+        re.compile(r"\bcream\b(?!\s+(?:[\w'’]+\s+){0,2}milk)", re.IGNORECASE),
+    ],
+    "flour": [
+        # Grocery bundles ("package beans, sugar, atta, ..."). Word boundary so
+        # "packaged" / "packaging" in normal flour listings are not excluded.
+        re.compile(r"\bpackage\b", re.IGNORECASE),
     ],
 }
 
@@ -55,6 +64,25 @@ EXCLUSION_KEYWORDS = {
         "mct",
         "oil press machine",
         "oil extract machine",
+        # herbal-shop / cosmetic oils
+        "akseer",
+        "zulf",
+        "neem",
+        "rosehip",
+        "aloe vera",
+        "clove oil",
+        "ajwain",
+        "fish oil",
+        "glycerin",
+        "ylang",
+        "orange oil",
+        "lemon oil",
+        "carrier oil",
+        "black seed",
+        "blackseed",
+        "kilwanji",
+        "ushn",
+        "pansar",  # also matches "pansari"; ~20 edible-labelled oils get caught, drop if unwanted
     ],
     "tea": [
         "tea bag",
@@ -91,7 +119,33 @@ EXCLUSION_KEYWORDS = {
         "gift set",
         "doremon",
         "tokyo",
-        "bottle"
+        "bottle",
+        # manga / books / merch
+        "vol.",
+        "manga",
+        "author",
+        "novel",
+        "book",
+        "dragon ball",
+        "demon slayer",
+        "naruto",
+        "pokemon",
+        "puzzle",
+        "playdough",
+        "board game",
+        "card",
+        "sticker",
+        "tattoo",
+        "tarot",
+        # prayer beads
+        "tasbeeh",
+        "tasbih",
+        "tasibh",
+        "beads",
+        # apparel / electronics / misc
+        "shirt",
+        "tablet",
+        "tumbler",
     ],
     "dairy": [
         "milk powder",
@@ -156,14 +210,31 @@ EXCLUSION_KEYWORDS = {
         "flavour milk",
         "olives",
         "face wash",
-        "cream",
+        # "cream" removed -> handled by regex above (keeps Full Cream Milk)
         "lotion",
         "olive",
         "cat food",
         "dog",
         "pet",
         "ors",
-        "calf"
+        "calf",
+        # baby / pet / cattle items
+        "feeder",
+        "teat",
+        "nipple",
+        "kitten",
+        "cerelac",
+        "cattle",
+        "booster",
+        "collector",
+        "drinker",
+        # non-milk products
+        "sharbat",
+        "peanut butter",
+        "cocoa butter",
+        "moringa",
+        "flour",
+        "evaporated",  # canned evaporated milk, not fresh/UHT
     ],
     "ghee": [
         "body butter",
@@ -171,6 +242,11 @@ EXCLUSION_KEYWORDS = {
         "kala chana",
         "flaxseed",
         "soyabean",
+        "banaspati",  # vegetable ghee, different product from desi ghee
+        # ghee-based sweets
+        "halwa",
+        "panjeeri",
+        "barfi",
     ],
     "sugar": [
         "sweetener",
@@ -188,6 +264,46 @@ EXCLUSION_KEYWORDS = {
         "jaggery",
         "gur",
         "gud",
+        # kitchenware / non-food
+        "hob",
+        "burner",
+        "knob",
+        "stove",
+        "sugar pot",
+        "sugar bowl",
+        "candy jar",
+        "fertilizer",
+        "epsom",
+        "husk",
+        # thickeners / additives / supplements
+        "xanthan",
+        "zanthan",
+        "thickener",
+        "stabilizer",
+        "glucose",
+        "moringa",
+        # diabetic / zero-sugar / substitutes
+        "sugar free",
+        "zero sugar",
+        "no added sugar",
+        "sugar control",
+        "sugar care",
+        "calorie",
+        "calarie",
+        "substitute",
+        "allulose",
+        "sweetex",
+        # rock sugar / candy / specialty sugars (not granulated white sugar)
+        "misri",
+        "mishri",
+        "nibat",
+        "nabat",
+        "candy",
+        "icing",
+        "caster",
+        "muscovado",
+        "coconut sugar",
+        "date sugar",
     ],
     "flour": [
         "cake mix",
@@ -251,7 +367,12 @@ EXCLUSION_KEYWORDS = {
         "besan",
         "chana",
         "urad",
-        "maash"
+        "maash",
+        # non-wheat flours (policy choice, drop if multigrain/barley should stay)
+        "barley",
+        "multigrain",
+        "multi grain",
+        "soya bean",
     ],
     "rice": [
         "rice flour",
@@ -263,7 +384,8 @@ EXCLUSION_KEYWORDS = {
         "paella",
         "poha",
         "murmura",
-        "puffed rice"
+        "puffed rice",
+        "suchi",  # misspelled sushi rice
     ],
     "pulses": [
         "flour",
@@ -274,7 +396,6 @@ EXCLUSION_KEYWORDS = {
         "murga",
     ],
 }
-
 
 def get_commodity_filter_reason(name: str, category: str):
     """
