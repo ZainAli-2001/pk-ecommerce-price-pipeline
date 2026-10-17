@@ -89,6 +89,9 @@ EXCLUSION_KEYWORDS = {
         "kilwanji",
         "ushn",
         "tukhum",  # e.g. "12 Tukhum seeds Oil"
+        "argon",  # argan oil misspelling
+        "buckthorn",
+        "avocado",  # edible but not a commodity cooking oil
         "pansar",  # also matches "pansari"; ~20 edible-labelled oils get caught, drop if unwanted
     ],
     "tea": [
@@ -153,6 +156,9 @@ EXCLUSION_KEYWORDS = {
         "shirt",
         "tablet",
         "tumbler",
+        "perfume",
+        "travel mug",
+        "denali",  # bottled water
     ],
     "dairy": [
         "milk powder",
@@ -245,6 +251,14 @@ EXCLUSION_KEYWORDS = {
         "condensed",  # canned condensed milk, same logic as evaporated
         "creamer",  # milk tea powders / whiteners ("Olpers Creamer")
         "nido",  # powdered milk brand sold without "milk powder" in the title
+        # non-dairy items found in outlier review
+        "olbas",
+        "inhalant",
+        "decongestant",
+        "rosehip",
+        "nesfruta",
+        "limopani",
+        "milk can",
     ],
     "ghee": [
         "body butter",
@@ -318,6 +332,14 @@ EXCLUSION_KEYWORDS = {
         "pearl sugar",
         "sugar powder",  # also matches "sugar powdered" / "brown sugar powder"
         "powdered sugar",
+        # sweetener typos / non-food found in outlier review
+        "sweetenir",
+        "subsitute",
+        "aspartame",
+        "sweet'n low",
+        "shopping bag",
+        "cream of tartar",
+        "goat weed",
     ],
     "flour": [
         "cake mix",
@@ -387,6 +409,13 @@ EXCLUSION_KEYWORDS = {
         "multigrain",
         "multi grain",
         "soya bean",
+        # more non-wheat flours
+        "quinoa",
+        "flax seed",
+        "singhara",
+        "chestnut",
+        "barly",  # barley misspelling
+        "semolina",
     ],
     "rice": [
         "rice flour",
@@ -400,6 +429,8 @@ EXCLUSION_KEYWORDS = {
         "murmura",
         "puffed rice",
         "suchi",  # misspelled sushi rice
+        "slim rice",  # keto rice
+        "ready to heat",  # ready meals
     ],
     "pulses": [
         "flour",
@@ -408,6 +439,8 @@ EXCLUSION_KEYWORDS = {
         "acne",
         "pegion",
         "murga",
+        "nashpal",
+        "panjiri",
     ],
 }
 
