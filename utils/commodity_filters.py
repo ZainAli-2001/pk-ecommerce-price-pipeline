@@ -17,11 +17,17 @@ REGEX_EXCLUSION_PATTERNS = {
         # Exclude cream products / skincare, but keep "Full Cream Milk"
         # (cream followed by up to 2 words and then "milk").
         re.compile(r"\bcream\b(?!\s+(?:[\w'’]+\s+){0,2}milk)", re.IGNORECASE),
+        # Pet treats ("Creamy Treat for Cats"). Word boundary so "UHT Treated"
+        # milk is not excluded.
+        re.compile(r"\btreats?\b", re.IGNORECASE),
     ],
     "flour": [
         # Grocery bundles ("package beans, sugar, atta, ..."). Word boundary so
         # "packaged" / "packaging" in normal flour listings are not excluded.
         re.compile(r"\bpackage\b", re.IGNORECASE),
+        # Wheat bran. Word boundary so "brand" (e.g. "Sunridage brand atta") is
+        # not excluded.
+        re.compile(r"\bbran\b", re.IGNORECASE),
     ],
 }
 
@@ -82,6 +88,7 @@ EXCLUSION_KEYWORDS = {
         "blackseed",
         "kilwanji",
         "ushn",
+        "tukhum",  # e.g. "12 Tukhum seeds Oil"
         "pansar",  # also matches "pansari"; ~20 edible-labelled oils get caught, drop if unwanted
     ],
     "tea": [
@@ -235,6 +242,9 @@ EXCLUSION_KEYWORDS = {
         "moringa",
         "flour",
         "evaporated",  # canned evaporated milk, not fresh/UHT
+        "condensed",  # canned condensed milk, same logic as evaporated
+        "creamer",  # milk tea powders / whiteners ("Olpers Creamer")
+        "nido",  # powdered milk brand sold without "milk powder" in the title
     ],
     "ghee": [
         "body butter",
@@ -304,6 +314,10 @@ EXCLUSION_KEYWORDS = {
         "muscovado",
         "coconut sugar",
         "date sugar",
+        "rock sugar",
+        "pearl sugar",
+        "sugar powder",  # also matches "sugar powdered" / "brown sugar powder"
+        "powdered sugar",
     ],
     "flour": [
         "cake mix",
@@ -351,7 +365,7 @@ EXCLUSION_KEYWORDS = {
         "emmer",
         "chana flour",
         "chickpea flour",
-        "bran",
+        # "bran" removed -> handled by word-boundary regex above (keeps "brand")
         "flaxseed flour",
         "tempura flour",
         "halwa",
@@ -396,6 +410,7 @@ EXCLUSION_KEYWORDS = {
         "murga",
     ],
 }
+
 
 def get_commodity_filter_reason(name: str, category: str):
     """
