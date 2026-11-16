@@ -31,6 +31,12 @@ REGEX_EXCLUSION_PATTERNS = {
     ],
 }
 
+REQUIRED_TERMS = {
+    "dairy": re.compile(r"milk|dairy|olper|nestle|haleeb|nurpur|nurpore|doodh", re.IGNORECASE),
+    "sugar": re.compile(r"sugar|cheeni|chini|khand|shakar|shakkar", re.IGNORECASE),
+    "oil":   re.compile(r"canola|conola|canula|sunflower|sun flower|cooking oil|vegetable oil|corn oil|mustard|musterd|sarso|sarsu|sarson|serson|soya|soybean|soyabean|rapeseed|olivola|mezan|meezan|kashmir oil", re.IGNORECASE),
+}
+
 EXCLUSION_KEYWORDS = {
     "oil": [
         "hair oil",
@@ -459,6 +465,11 @@ def get_commodity_filter_reason(name: str, category: str):
     for pattern in REGEX_EXCLUSION_PATTERNS.get(category, []):
         if pattern.search(name):
             return pattern.pattern
+
+    required = REQUIRED_TERMS.get(category)
+    
+    if required and not required.search(name):
+        return "missing_required_term"
 
     return None
 
